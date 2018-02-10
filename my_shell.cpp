@@ -76,6 +76,7 @@ void redirectIn(int i, int count) {
 
 void freeMemory(InputData *input) {
   for (int i = 0; i < input->count; i++) {
+    fprintf(stderr, "free%d\n", i);
     free(input->args[i]);
   }
   free(input);
