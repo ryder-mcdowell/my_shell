@@ -18,6 +18,9 @@ InputData *parseInput(char line[80]) {
 
   input = (InputData *) malloc(sizeof(InputData));
 
+  //remove newline
+  line[strlen(line) - 1] = '\0';
+
   //get line
   ptr = strtok(line, " ");
   while (ptr != NULL) {
@@ -76,22 +79,20 @@ void redirectIn(int i, int count) {
 
 void freeMemory(InputData *input) {
   for (int i = 0; i < input->count + 1; i++) {
-    fprintf(stderr, "free%d\n", i);
     free(input->args[i]);
   }
   free(input->args);
   free(input);
 }
 
+
 int main() {
   char line[80];
   int i;
 
-
-  while (gets(line) != NULL) {
+  while (fgets(line, 1000, stdin) != NULL) {
 
     InputData *input = parseInput(line);
-
 
     //exit
     if (strcmp("exit", input->args[0]) == 0) {
@@ -99,6 +100,7 @@ int main() {
       exit(1);
     }
 
+    //
     for (i = 0; i < input->count; i++) {
       if (strcmp(">", input->args[i]) == 0) {
         redirectOut(i, input->count);
