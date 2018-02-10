@@ -29,7 +29,7 @@ InputData *parseInput(char line[80]) {
   //convert to char-style
   input->args = (char **) malloc(sizeof(char *) * (input->count + 1));
   for (i = 0; i < input->count; i++) {
-    input->args[i] = strdup(argsVector[i]);
+    input->args[i] = strdup(argsVector[i]);    //need strdup?
   }
   input->args[input->count] = NULL;
 
@@ -75,10 +75,11 @@ void redirectIn(int i, int count) {
 }
 
 void freeMemory(InputData *input) {
-  for (int i = 0; i < input->count; i++) {
+  for (int i = 0; i < input->count + 1; i++) {
     fprintf(stderr, "free%d\n", i);
     free(input->args[i]);
   }
+  free(input->args);
   free(input);
 }
 
@@ -94,6 +95,7 @@ int main() {
 
     //exit
     if (strcmp("exit", input->args[0]) == 0) {
+      freeMemory(input);
       exit(1);
     }
 
