@@ -5,31 +5,49 @@
 #include <vector>
 using namespace std;
 
-vector <char *> parseInput(char line[80]) {
+typedef struct {
+  char **args;
+  int count;
+} InputData;
+
+InputData *parseInput(char line[80]) {
   char *ptr;
   vector <char *> argsVector;
+  int i;
+  InputData *input;
 
+  input = (InputData *) malloc(sizeof(InputData));
+
+  //get line
   ptr = strtok(line, " ");
   while (ptr != NULL) {
     argsVector.push_back(ptr);
     ptr = strtok(NULL, " ");
   }
+  input->count = argsVector.size();
 
-  return argsVector;
+  //convert to char-style
+  input->args = (char **) malloc(sizeof(char *) * (input->count + 1));
+  for (i = 0; i < input->count; i++) {
+    input->args[i] = strdup(argsVector[i]);
+  }
+  input->args[input->count] = NULL;
+
+
+  argsVector.clear();
+  return input;
 }
 
-
-
-void redirectOut(int i, int args_count) {
+void redirectOut(int i, int count) {
   if (i == 0) {
-    if (args_count == 1) {
+    if (count == 1) {
       //only arg
       fprintf(stderr, ">: only arg\n");
     } else {
       //first arg
       fprintf(stderr, ">: first arg\n");
     }
-  } else if (i == args_count - 1) {
+  } else if (i == count - 1) {
     //last arg
     fprintf(stderr, ">: last arg\n");
   } else {
@@ -38,16 +56,16 @@ void redirectOut(int i, int args_count) {
   }
 }
 
-void redirectIn(int i, int args_count) {
+void redirectIn(int i, int count) {
   if (i == 0) {
-    if (args_count == 1) {
+    if (count == 1) {
       //only arg
       fprintf(stderr, "<: only arg\n");
     } else {
       //first arg
       fprintf(stderr, "<: first arg\n");
     }
-  } else if (i == args_count - 1) {
+  } else if (i == count - 1) {
     //last arg
     fprintf(stderr, "<: last arg\n");
   } else {
@@ -56,49 +74,38 @@ void redirectIn(int i, int args_count) {
   }
 }
 
+void freeMemory(InputData *input) {
+  for (int i = 0; i < input->count; i++) {
+    free(input->args[i]);
+  }
+  free(input);
+}
+
 int main() {
   char line[80];
-  vector <char *> argsVector;
-  int args_count;
-  char **args;
-
   int i;
 
 
   while (gets(line) != NULL) {
 
-    argsVector = parseInput(line);
+    InputData *input = parseInput(line);
 
-    args_count = argsVector.size();
-
-    //store arguments
-    args = (char **) malloc(sizeof(char *) * (args_count + 1));
-    for (i = 0; i < args_count; i++) {
-      args[i] = argsVector[i];
-    }
-    args[args_count] = NULL;
-
-    //print arguments
-    //fprintf(stderr, "->%s\n", args[args_count - 1]);
-    //fprintf(stderr, "%d\n", args_count);
-    //**********************//
 
     //exit
-    if (strcmp("exit", args[0]) == 0) {
+    if (strcmp("exit", input->args[0]) == 0) {
       exit(1);
     }
 
-    for (i = 0; i < args_count; i++) {
-      if (strcmp(">", args[i]) == 0) {
-        redirectOut(i, args_count);
+    for (i = 0; i < input->count; i++) {
+      if (strcmp(">", input->args[i]) == 0) {
+        redirectOut(i, input->count);
       }
-      if (strcmp("<", args[i]) == 0) {
-        redirectIn(i, args_count);
+      if (strcmp("<", input->args[i]) == 0) {
+        redirectIn(i, input->count);
       }
 
     }
 
-    argsVector.clear();
-    free(args);
+    freeMemory(input);
   }
 }
