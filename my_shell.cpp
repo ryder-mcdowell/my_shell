@@ -118,20 +118,11 @@ int main() {
 
     //ls
     if (strcmp("ls", input->args[0]) == 0) {
-      if (strcmp("-l", input->args[1]) == 0) {
-        switch(fork()) {
-          case 0:
-            execvp(input->args[0], input->args[1], input->args);
-          default:
-            wait(NULL);
-        }
-      } else {
-        switch(fork()) {
-          case 0:
-            execvp(input->args[0], input->args);
-          default:
-            wait(NULL);
-        }
+      switch(fork()) {
+        case 0:
+          execvp(input->args[0], input->args);
+        default:
+          wait(NULL);
       }
     }
 
@@ -145,7 +136,7 @@ int main() {
       }
     }
 
-    //
+    //redirection
     for (i = 0; i < input->count; i++) {
       if (strcmp(">", input->args[i]) == 0) {
         redirectOut(i, input);
