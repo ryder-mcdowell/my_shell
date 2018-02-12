@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <fcntl.h>
+#include <sys/wait.h>
 #include <vector>
 using namespace std;
 
@@ -41,34 +43,38 @@ InputData *parseInput(char line[80]) {
   return input;
 }
 
-void redirectOut(int i, int count) {
+void redirectOut(int i, InputData *input) {
+  FILE *fd1;
+  FILE *fd2;
+  int check_int;
+
   if (i == 0) {
-    if (count == 1) {
+    if (input->count == 1) {
       //only arg
       fprintf(stderr, ">: only arg\n");
     } else {
       //first arg
       fprintf(stderr, ">: first arg\n");
     }
-  } else if (i == count - 1) {
+  } else if (i == input->count - 1) {
     //last arg
     fprintf(stderr, ">: last arg\n");
   } else {
-    //middle arg
+    //MIDDLE ARG
     fprintf(stderr, ">: middle arg\n");
   }
 }
 
-void redirectIn(int i, int count) {
+void redirectIn(int i, InputData *input) {
   if (i == 0) {
-    if (count == 1) {
+    if (input->count == 1) {
       //only arg
       fprintf(stderr, "<: only arg\n");
     } else {
       //first arg
       fprintf(stderr, "<: first arg\n");
     }
-  } else if (i == count - 1) {
+  } else if (i == input->count - 1) {
     //last arg
     fprintf(stderr, "<: last arg\n");
   } else {
@@ -100,14 +106,54 @@ int main() {
       exit(1);
     }
 
+    //cat
+    if (strcmp("cat", input->args[0]) == 0) {
+      switch(fork()) {
+        case 0:
+          execvp(input->args[0], input->args);
+        default:
+          wait(NULL);
+      }
+    }
+
+    //ls
+    if (strcmp("ls", input->args[0]) == 0) {
+      if (strcmp("-l", input->args[1]) == 0) {
+        switch(fork()) {
+          case 0:
+            execvp(input->args[0], input->args[1], input->args);
+          default:
+            wait(NULL);
+        }
+      } else {
+        switch(fork()) {
+          case 0:
+            execvp(input->args[0], input->args);
+          default:
+            wait(NULL);
+        }
+      }
+    }
+
+    //echo
+    if (strcmp("echo", input->args[0]) == 0) {
+      switch(fork()) {
+        case 0:
+          execvp(input->args[0], input->args);
+        default:
+          wait(NULL);
+      }
+    }
+
     //
     for (i = 0; i < input->count; i++) {
       if (strcmp(">", input->args[i]) == 0) {
-        redirectOut(i, input->count);
+        redirectOut(i, input);
       }
       if (strcmp("<", input->args[i]) == 0) {
-        redirectIn(i, input->count);
+        redirectIn(i, input);
       }
+
 
     }
 
