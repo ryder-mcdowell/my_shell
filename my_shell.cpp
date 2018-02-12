@@ -44,8 +44,7 @@ InputData *parseInput(char line[80]) {
 }
 
 void redirectOut(int i, InputData *input) {
-  FILE *fd1;
-  FILE *fd2;
+  FILE *fd;
   int check_int;
 
   if (i == 0) {
@@ -59,9 +58,21 @@ void redirectOut(int i, InputData *input) {
   } else if (i == input->count - 1) {
     //last arg
     fprintf(stderr, ">: last arg\n");
+    fprintf(stderr, "Missing name for redirect\n");
   } else {
     //MIDDLE ARG
     fprintf(stderr, ">: middle arg\n");
+    if( access( input->args[i + 1], F_OK ) != -1 ) {
+      // file exists
+      fd = fopen(input->args[i + 1], "w");
+
+      fclose(fd);
+    } else {
+      // file doesn't exist
+      fprintf(stderr, "File %s does not exist or is invalid\n", input->args[i + 1]);
+    }
+
+
   }
 }
 
@@ -95,58 +106,43 @@ void freeMemory(InputData *input) {
 int main() {
   char line[80];
   int i;
+  int isNewSegment = 1;
 
   while (fgets(line, 1000, stdin) != NULL) {
 
     InputData *input = parseInput(line);
 
-    //exit
-    if (strcmp("exit", input->args[0]) == 0) {
-      freeMemory(input);
-      exit(1);
-    }
+    if (input->count != 0) {
 
-    //cat
-    if (strcmp("cat", input->args[0]) == 0) {
-      switch(fork()) {
-        case 0:
-          execvp(input->args[0], input->args);
-        default:
-          wait(NULL);
-      }
-    }
-
-    //ls
-    if (strcmp("ls", input->args[0]) == 0) {
-      switch(fork()) {
-        case 0:
-          execvp(input->args[0], input->args);
-        default:
-          wait(NULL);
-      }
-    }
-
-    //echo
-    if (strcmp("echo", input->args[0]) == 0) {
-      switch(fork()) {
-        case 0:
-          execvp(input->args[0], input->args);
-        default:
-          wait(NULL);
-      }
-    }
-
-    //redirection
-    for (i = 0; i < input->count; i++) {
-      if (strcmp(">", input->args[i]) == 0) {
-        redirectOut(i, input);
-      }
-      if (strcmp("<", input->args[i]) == 0) {
-        redirectIn(i, input);
+      //exit
+      if (strcmp("exit", input->args[0]) == 0) {
+        freeMemory(input);
+        exit(1);
       }
 
+      //exec
+      for (int i = 0; i < input->count; i++) {
+        fprintf(stderr, "LOOP %d\n", i);
+        switch(fork()) {
+          case 0:
+            execvp(input->args[i], input->args);
+            default:
+            wait(NULL);
+          }
+        }
+
+        //redirection
+        if (strcmp(">", input->args[i]) == 0) {
+          redirectOut(i, input);
+        }
+        if (strcmp("<", input->args[i]) == 0) {
+          redirectIn(i, input);
+        }
+
+      }
 
     }
+
 
     freeMemory(input);
   }
