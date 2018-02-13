@@ -1,4 +1,22 @@
-#include "my_shell.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <fcntl.h>
+#include <sys/wait.h>
+#include <vector>
+using namespace std;
+
+typedef struct InputLine {
+  char **args;
+  int count;
+} InputLine;
+
+typedef struct Segment {
+  char **args;
+  int count;
+  struct Segment *next;
+} Segment;
 
 InputLine *parseInput(char line[80]) {
   char *ptr;
@@ -69,7 +87,7 @@ Segment *parseSegments(char line[80]) {
   while (ptr != NULL) {
     argsVector.push_back(ptr);
     if (strcmp(ptr, "<" ) == 0 || strcmp(ptr, ">" ) == 0 || strcmp(ptr, "<<" ) == 0 || strcmp(ptr, ">>" ) == 0 || strcmp(ptr, "|" ) == 0) {
-      //argsVector.pop_back();
+      argsVector.pop_back();
       if (first == NULL) {
         fprintf(stderr, "-FIRST SEGMENT\n");
         current = createNewSegment(argsVector, NULL);
@@ -92,4 +110,31 @@ Segment *parseSegments(char line[80]) {
 
   argsVector.clear();
   return first;
+}
+
+
+int main() {
+  char line[80];
+
+
+  while (fgets(line, 1000, stdin) != NULL) {
+
+    //InputLine *line = parseInput(line);
+    Segment *segment = parseSegments(line);
+
+  //  fprintf(stderr, "line count = %d\n", line->count);
+
+    while (segment->next != NULL) {
+      fprintf(stderr, "segment count = %d\n", segment->count);
+      for (int i = 0; i < segment->count; i++) {
+
+      }
+
+
+      segment = segment->next;
+    }
+    fprintf(stderr, "segment count = %d\n", segment->count);
+
+
+  }
 }
