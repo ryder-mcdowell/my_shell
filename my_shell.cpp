@@ -119,10 +119,10 @@ int main() {
 
   while (fgets(line, 1000, stdin) != NULL) {
 
-    //InputLine *line = parseInput(line);
-    Segment *segment = parseSegments(line);
+    InputLine *input = parseInput(strdup(line));
+    Segment *segment = parseSegments(strdup(line));
 
-  //  fprintf(stderr, "line count = %d\n", line->count);
+    fprintf(stderr, "input count = %d\n", input->count);
 
     while (segment->next != NULL) {
       fprintf(stderr, "segment count = %d\n", segment->count);
