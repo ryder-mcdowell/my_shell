@@ -112,36 +112,38 @@ Segment *parseSegments(char line[80]) {
   return first;
 }
 
-void redirectOut(int i, InputLine *input) {
-  FILE *fd;
+void redirectOut(int i, InputLine *input, Segment *segment) {
   int check_int;
 
   if (i == 0) {
     if (input->count == 1) {
       //only arg
       fprintf(stderr, ">: only arg\n");
+      fprintf(stderr, ">: file redirection\n");
     } else {
       //first arg
       fprintf(stderr, ">: first arg\n");
+      fprintf(stderr, "Missing program or utilty to redirect from\n");
     }
   } else if (i == input->count - 1) {
     //last arg
     fprintf(stderr, ">: last arg\n");
-    fprintf(stderr, "Missing name for redirect\n");
+    fprintf(stderr, "Missing filename for redirect\n");
   } else {
     //MIDDLE ARG
     fprintf(stderr, ">: middle arg\n");
-    if( access( input->args[i + 1], F_OK ) != -1 ) {
-      // file exists
-      fd = fopen(input->args[i + 1], "w");
 
-      fclose(fd);
-    } else {
-      // file doesn't exist
-      fprintf(stderr, "File %s does not exist or is invalid\n", input->args[i + 1]);
+    const char *filename = input->args[i + 1];
+    int fd = open(filename, O_CREAT|O_WRONLY, 0777);
+
+    switch(fork()) {
+      case 0:
+        dup2(fd, 1);
+        close(fd);
+        execvp(segment->args[0], segment->args);
+      default:
+        wait(NULL);
     }
-
-
   }
 }
 
@@ -176,7 +178,7 @@ int main() {
       for (int i = 0; i < input->count; i++) {
         //redirection
         if (strcmp(">", input->args[i]) == 0) {
-          redirectOut(i, input);
+          redirectOut(i, input, segment);
         }
         if (strcmp("<", input->args[i]) == 0) {
           redirectIn(i, input);
@@ -187,7 +189,7 @@ int main() {
     }
     switch(fork()) {
       case 0:
-        execvp(segment->args[0], input->args);
+        execvp(segment->args[0], segment->args);
       default:
         wait(NULL);
     }
