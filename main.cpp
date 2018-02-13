@@ -1,4 +1,4 @@
-#include <my_shell.h>
+#include "my_shell.h"
 
 int main() {
   char line[80];
@@ -6,10 +6,10 @@ int main() {
 
   while (fgets(line, 1000, stdin) != NULL) {
 
-    InputLine *line = parseInput(line);
+    //InputLine *line = parseInput(line);
     Segment *segment = parseSegments(line);
 
-    fprintf(stderr, "line count = %d\n", line->count);
+    //fprintf(stderr, "line count = %d\n", line->count);
 
     while (segment->next != NULL) {
       fprintf(stderr, "segment count = %d\n", segment->count);

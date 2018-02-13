@@ -1,3 +1,5 @@
+#include "my_shell.h"
+
 InputLine *parseInput(char line[80]) {
   char *ptr;
   vector <char *> argsVector;
