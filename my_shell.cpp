@@ -89,11 +89,11 @@ Segment *parseSegments(char line[80]) {
     if (strcmp(ptr, "<" ) == 0 || strcmp(ptr, ">" ) == 0 || strcmp(ptr, "<<" ) == 0 || strcmp(ptr, ">>" ) == 0 || strcmp(ptr, "|" ) == 0) {
       argsVector.pop_back();
       if (first == NULL) {
-        fprintf(stderr, "-FIRST SEGMENT\n");
+        //first segment
         current = createNewSegment(argsVector, NULL);
         first = current;
       } else {
-        fprintf(stderr, "-NEXT SEGMENT\n");
+        //next segment
         current = createNewSegment(argsVector, current);
       }
       argsVector.clear();
@@ -101,10 +101,10 @@ Segment *parseSegments(char line[80]) {
     ptr = strtok(NULL, " ");
   }
   if (first == NULL) {
-    fprintf(stderr, "-ONE SEGMENT\n");
+    //only segment
     first = createNewSegment(argsVector, NULL);
   } else {
-    fprintf(stderr, "-LAST SEGMENT\n");
+    //last segment
     createNewSegment(argsVector, current);
   }
 
@@ -172,10 +172,7 @@ int main() {
     InputLine *input = parseInput(strdup(line));
     Segment *segment = parseSegments(strdup(line));
 
-    fprintf(stderr, "input count = %d\n", input->count);
-
     while (segment->next != NULL) {
-      fprintf(stderr, "segment count = %d\n", segment->count);
       for (int i = 0; i < input->count; i++) {
         //redirection
         if (strcmp(">", input->args[i]) == 0) {
@@ -188,7 +185,6 @@ int main() {
 
       segment = segment->next;
     }
-    fprintf(stderr, "segment count = %d\n", segment->count);
     switch(fork()) {
       case 0:
         execvp(segment->args[0], input->args);
