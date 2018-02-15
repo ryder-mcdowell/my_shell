@@ -10,6 +10,7 @@ using namespace std;
 typedef struct InputLine {
   char **args;
   int count;
+  int segments_count;
 } InputLine;
 
 typedef struct Segment {
@@ -24,6 +25,9 @@ InputLine *parseInput(char line[80]) {
   InputLine *input;
 
   input = (InputLine *) malloc(sizeof(InputLine));
+
+  //set segments_count for parseSegments to add to
+  input->segments_count = 0;
 
   //remove newline
   line[strlen(line) - 1] = '\0';
@@ -73,7 +77,7 @@ Segment *createNewSegment(vector<char *> argsVector, Segment *previous) {
   return segment;
 }
 
-Segment *parseSegments(char line[80]) {
+Segment *parseSegments(char line[80], InputLine *input) {
   char *ptr;
   vector <char *> argsVector;
   Segment *first = NULL;
@@ -87,6 +91,7 @@ Segment *parseSegments(char line[80]) {
   while (ptr != NULL) {
     argsVector.push_back(ptr);
     if (strcmp(ptr, "<" ) == 0 || strcmp(ptr, ">" ) == 0 || strcmp(ptr, "2>" ) == 0 || strcmp(ptr, ">>" ) == 0 || strcmp(ptr, "|" ) == 0) {
+      input->segments_count += 1;
       argsVector.pop_back();
       if (first == NULL) {
         //first segment
@@ -103,9 +108,11 @@ Segment *parseSegments(char line[80]) {
   if (first == NULL) {
     //only segment
     first = createNewSegment(argsVector, NULL);
+    input->segments_count += 1;
   } else {
     //last segment
     createNewSegment(argsVector, current);
+    input->segments_count += 1;
   }
 
   argsVector.clear();
@@ -230,12 +237,12 @@ int main() {
     onlyArg = 1;
 
     InputLine *input = parseInput(strdup(line));
-    Segment *segment = parseSegments(strdup(line));
+    Segment *segment = parseSegments(strdup(line), input);
 
     //exit
     if (strcmp("exit", input->args[0]) == 0) {
       freeMemory(input, segment);
-      exit(1);
+      exit(0);
     }
 
     while (segment->next != NULL) {
