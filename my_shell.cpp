@@ -146,6 +146,7 @@ void redirectOut(int i, InputLine *input, Segment *segment) {
       default:
         wait(NULL);
     }
+    //free((char*)filename);
   }
 }
 
@@ -208,25 +209,24 @@ void redirectOutAppend(int i, InputLine *input, Segment *segment) {
 }
 
 void freeMemory(InputLine *input, Segment *segment) {
+  //free segments
+  Segment *tmp;
+  while (segment != NULL) {
+    for (int i = 0; i < segment->count + 1; i++) {
+      free(segment->args[i]);
+    }
+    free(segment->args);
+    tmp = segment;
+    segment = segment->next;
+    free(tmp);
+  }
+
+  //free input line
   for (int i = 0; i < input->count + 1; i++) {
     free(input->args[i]);
   }
   free(input->args);
   free(input);
-
-  // while (segment->next != NULL) {
-  //   for (i = 0; i < segment->count + 1; i++) {
-  //     free(segment->args[i]);
-  //   }
-  //   free(segment->args);
-  //
-  //   free(segment->next);
-  //   free(segment);
-  // }
-  free(segment->next);
-  free(segment->args);
-  free(segment);
-
 }
 
 int main() {
@@ -235,9 +235,16 @@ int main() {
 
   while (fgets(line, 1000, stdin) != NULL) {
     onlyArg = 1;
+    char* line_dup = strdup(line);
 
-    InputLine *input = parseInput(strdup(line));
-    Segment *segment = parseSegments(strdup(line), input);
+    InputLine *input = parseInput(line);
+    Segment *segment = parseSegments(line_dup, input);
+
+    //save first for freeing memory later
+    Segment *first = segment;
+
+    //free duplicated line
+    free(line_dup);
 
     //exit
     if (strcmp("exit", input->args[0]) == 0) {
@@ -268,6 +275,6 @@ int main() {
           wait(NULL);
       }
     }
-    freeMemory(input, segment);
+    freeMemory(input, first);
   }
 }
