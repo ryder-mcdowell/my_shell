@@ -86,7 +86,7 @@ Segment *parseSegments(char line[80]) {
   ptr = strtok(line, " ");
   while (ptr != NULL) {
     argsVector.push_back(ptr);
-    if (strcmp(ptr, "<" ) == 0 || strcmp(ptr, ">" ) == 0 || strcmp(ptr, "<<" ) == 0 || strcmp(ptr, ">>" ) == 0 || strcmp(ptr, "|" ) == 0) {
+    if (strcmp(ptr, "<" ) == 0 || strcmp(ptr, ">" ) == 0 || strcmp(ptr, "2>" ) == 0 || strcmp(ptr, ">>" ) == 0 || strcmp(ptr, "|" ) == 0) {
       argsVector.pop_back();
       if (first == NULL) {
         //first segment
@@ -118,21 +118,16 @@ void redirectOut(int i, InputLine *input, Segment *segment) {
   if (i == 0) {
     if (input->count == 1) {
       //only arg
-      fprintf(stderr, ">: only arg\n");
       fprintf(stderr, ">: file redirection\n");
     } else {
       //first arg
-      fprintf(stderr, ">: first arg\n");
       fprintf(stderr, "Missing program or utilty to redirect from\n");
     }
   } else if (i == input->count - 1) {
     //last arg
-    fprintf(stderr, ">: last arg\n");
     fprintf(stderr, "Missing filename for redirect\n");
   } else {
     //MIDDLE ARG
-    fprintf(stderr, ">: middle arg\n");
-
     const char *filename = input->args[i + 1];
     int fd = open(filename, O_CREAT|O_WRONLY, 0777);
 
@@ -147,53 +142,97 @@ void redirectOut(int i, InputLine *input, Segment *segment) {
   }
 }
 
-void redirectIn(int i, InputLine *input) {
+void redirectIn(int i, InputLine *input, Segment *segment) {
   if (i == 0) {
     if (input->count == 1) {
       //only arg
-      fprintf(stderr, "<: only arg\n");
+      fprintf(stderr, "<: file redirection\n");;
     } else {
       //first arg
-      fprintf(stderr, "<: first arg\n");
+      fprintf(stderr, "Missing filename for redirect\n");
     }
   } else if (i == input->count - 1) {
     //last arg
-    fprintf(stderr, "<: last arg\n");
+    fprintf(stderr, "Missing program or utilty to redirect from\n");
   } else {
-    //middle arg
-    fprintf(stderr, "<: middle arg\n");
+    //MIDDLE ARG
+    const char *filename = input->args[i - 1];
+    int fd = open(filename, O_CREAT|O_WRONLY, 0777);
+
+    switch(fork()) {
+      case 0:
+        dup2(fd, 1);
+        close(fd);
+        execvp(segment->args[0], segment->args);
+      default:
+        wait(NULL);
+    }
   }
 }
 
+void redirectOutAppend(int i, InputLine *input, Segment *segment) {
+  int check_int;
+
+  if (i == 0) {
+    if (input->count == 1) {
+      //only arg
+      fprintf(stderr, ">: file redirection\n");
+    } else {
+      //first arg
+      fprintf(stderr, "Missing program or utilty to redirect from\n");
+    }
+  } else if (i == input->count - 1) {
+    //last arg
+    fprintf(stderr, "Missing filename for redirect\n");
+  } else {
+    //MIDDLE ARG
+    const char *filename = input->args[i + 1];
+    int fd = open(filename, O_CREAT|O_WRONLY, 0777);
+
+    switch(fork()) {
+      case 0:
+        dup2(fd, 1);
+        close(fd);
+        execvp(segment->args[0], segment->args);
+      default:
+        wait(NULL);
+    }
+  }
+}
 
 int main() {
   char line[80];
+  int onlyArg;
 
   while (fgets(line, 1000, stdin) != NULL) {
+    onlyArg = 1;
 
     InputLine *input = parseInput(strdup(line));
     Segment *segment = parseSegments(strdup(line));
 
     while (segment->next != NULL) {
-      for (int i = 0; i < input->count; i++) {
+      for (int i = 0; i < segment->count + 2; i++) {
         //redirection
         if (strcmp(">", input->args[i]) == 0) {
           redirectOut(i, input, segment);
+          onlyArg = 0;
         }
         if (strcmp("<", input->args[i]) == 0) {
-          redirectIn(i, input);
+          redirectIn(i, input, segment->next);
+          onlyArg = 0;
         }
       }
 
       segment = segment->next;
     }
-    switch(fork()) {
-      case 0:
-        execvp(segment->args[0], segment->args);
-      default:
-        wait(NULL);
+    if (onlyArg == 1) {
+      fprintf(stderr, "argument count = %d\n", segment->count);
+      switch(fork()) {
+        case 0:
+          execvp(segment->args[0], segment->args);
+        default:
+          wait(NULL);
+      }
     }
-
-
   }
 }
