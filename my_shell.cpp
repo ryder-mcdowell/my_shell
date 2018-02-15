@@ -248,7 +248,7 @@ int main() {
 
     //exit
     if (strcmp("exit", input->args[0]) == 0) {
-      freeMemory(input, segment);
+      freeMemory(input, first);
       exit(0);
     }
 
