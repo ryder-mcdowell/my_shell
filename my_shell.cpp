@@ -176,7 +176,7 @@ void redirectOutAppend(int i, InputLine *input, Segment *segment) {
   if (i == 0) {
     if (input->count == 1) {
       //only arg
-      fprintf(stderr, ">: file redirection\n");
+      fprintf(stderr, ">>: file redirection (append)\n");
     } else {
       //first arg
       fprintf(stderr, "Missing program or utilty to redirect from\n");
@@ -187,7 +187,7 @@ void redirectOutAppend(int i, InputLine *input, Segment *segment) {
   } else {
     //MIDDLE ARG
     const char *filename = input->args[i + 1];
-    int fd = open(filename, O_CREAT|O_WRONLY, 0777);
+    int fd = open(filename, O_WRONLY|O_APPEND, 0777);
 
     switch(fork()) {
       case 0:
@@ -200,6 +200,28 @@ void redirectOutAppend(int i, InputLine *input, Segment *segment) {
   }
 }
 
+void freeMemory(InputLine *input, Segment *segment) {
+  for (int i = 0; i < input->count + 1; i++) {
+    free(input->args[i]);
+  }
+  free(input->args);
+  free(input);
+
+  // while (segment->next != NULL) {
+  //   for (i = 0; i < segment->count + 1; i++) {
+  //     free(segment->args[i]);
+  //   }
+  //   free(segment->args);
+  //
+  //   free(segment->next);
+  //   free(segment);
+  // }
+  free(segment->next);
+  free(segment->args);
+  free(segment);
+
+}
+
 int main() {
   char line[80];
   int onlyArg;
@@ -209,6 +231,12 @@ int main() {
 
     InputLine *input = parseInput(strdup(line));
     Segment *segment = parseSegments(strdup(line));
+
+    //exit
+    if (strcmp("exit", input->args[0]) == 0) {
+      freeMemory(input, segment);
+      exit(1);
+    }
 
     while (segment->next != NULL) {
       for (int i = 0; i < segment->count + 2; i++) {
@@ -226,7 +254,6 @@ int main() {
       segment = segment->next;
     }
     if (onlyArg == 1) {
-      fprintf(stderr, "argument count = %d\n", segment->count);
       switch(fork()) {
         case 0:
           execvp(segment->args[0], segment->args);
@@ -234,5 +261,6 @@ int main() {
           wait(NULL);
       }
     }
+    freeMemory(input, segment);
   }
 }
