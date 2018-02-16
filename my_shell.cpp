@@ -260,7 +260,48 @@ void redirectOutAppend(int i, InputLine *input, Segment *segment) {
   }
 }
 
-void freeMemory(InputLine *input, Segment *segment) {
+void redirectOutError(int i, InputLine *input, Segment *segment) {
+  //int check_int;
+
+  if (i == 0) {
+    if (input->count == 1) {
+      //only arg
+      fprintf(stderr, "2>: file redirection (stderr)\n");
+    } else {
+      //first arg
+      fprintf(stderr, "Missing program or utilty to redirect from\n");
+    }
+  } else if (i == input->count - 1) {
+    //last arg
+    fprintf(stderr, "Missing filename for redirect\n");
+  } else {
+    //MIDDLE ARG
+    const char *filename = input->args[i + 1];
+    int fd = open(filename, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+    if (fd < 0) {
+      perror("ERROR");
+      exit(1);
+    }
+
+    switch(fork()) {
+      case 0:
+        if (dup2(fd, 2) < 0) {
+          perror("ERROR");
+          exit(1);
+        }
+        if (close(fd) < 0) {
+          perror("ERROR");
+          exit(1);
+        }
+        execvp(segment->args[0], segment->args);
+        fprintf(stderr, "-my_bash: %s: command not found\n", segment->args[0]);
+      default:
+        wait(NULL);
+    }
+  }
+}
+
+void freeStructMemory(InputLine *input, Segment *segment) {
   //free segments
   Segment *tmp;
   while (segment != NULL) {
@@ -300,7 +341,7 @@ int main() {
 
     //exit
     if (strcmp("exit", input->args[0]) == 0) {
-      freeMemory(input, first);
+      freeStructMemory(input, first);
       exit(0);
     }
 
@@ -319,6 +360,10 @@ int main() {
           redirectOutAppend(i, input, segment);
           onlyArg = 0;
         }
+        if (strcmp("2>", input->args[i]) == 0) {
+          redirectOutError(i, input, segment);
+          onlyArg = 0;
+        }
       }
 
       segment = segment->next;
@@ -332,6 +377,6 @@ int main() {
           wait(NULL);
       }
     }
-    freeMemory(input, first);
+    freeStructMemory(input, first);
   }
 }
