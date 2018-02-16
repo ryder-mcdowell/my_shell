@@ -26,6 +26,11 @@ InputLine *parseInput(char line[80]) {
 
   input = (InputLine *) malloc(sizeof(InputLine));
 
+  if (!input) {
+    perror("MALLOC ERROR:");
+    exit(1);
+  }
+
   //set segments_count for parseSegments to add to
   input->segments_count = 0;
 
@@ -42,6 +47,10 @@ InputLine *parseInput(char line[80]) {
 
   //convert to char-style
   input->args = (char **) malloc(sizeof(char *) * (input->count + 1));
+  if (!input->args) {
+    perror("MALLOC ERROR:");
+    exit(1);
+  }
   for (int i = 0; i < input->count; i++) {
     input->args[i] = strdup(argsVector[i]);    //need strdup?
   }
@@ -56,11 +65,20 @@ Segment *createNewSegment(vector<char *> argsVector, Segment *previous) {
   //create segment
   Segment *segment = (Segment *) malloc(sizeof(Segment));
 
+  if (!segment) {
+    perror("MALLOC ERROR:");
+    exit(1);
+  }
+
   //set count
   segment->count = argsVector.size();
 
   //set args char-style
   segment->args = (char **) malloc(sizeof(char *) * (segment->count + 1));
+  if (!segment->args) {
+    perror("MALLOC ERROR:");
+    exit(1);
+  }
   for (int i = 0; i < segment->count; i++) {
     segment->args[i] = strdup(argsVector[i]);    //need strdup?
   }
@@ -120,7 +138,7 @@ Segment *parseSegments(char line[80], InputLine *input) {
 }
 
 void redirectOut(int i, InputLine *input, Segment *segment) {
-  int check_int;
+  //int check_int;
 
   if (i == 0) {
     if (input->count == 1) {
@@ -136,21 +154,33 @@ void redirectOut(int i, InputLine *input, Segment *segment) {
   } else {
     //MIDDLE ARG
     const char *filename = input->args[i + 1];
-    int fd = open(filename, O_CREAT|O_WRONLY, 0777);
+    int fd = open(filename, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR);
+    if (fd < 0) {
+      perror("ERROR");
+      exit(1);
+    }
 
     switch(fork()) {
       case 0:
-        dup2(fd, 1);
-        close(fd);
+        if (dup2(fd, 1) < 0) {
+          perror("ERROR");
+          exit(1);
+        }
+        if (close(fd) < 0) {
+          perror("ERROR");
+          exit(1);
+        }
         execvp(segment->args[0], segment->args);
+        fprintf(stderr, "-my_bash: %s: command not found\n", segment->args[0]);
       default:
         wait(NULL);
     }
-    //free((char*)filename);
   }
 }
 
 void redirectIn(int i, InputLine *input, Segment *segment) {
+  //int check_int;
+
   if (i == 0) {
     if (input->count == 1) {
       //only arg
@@ -165,13 +195,24 @@ void redirectIn(int i, InputLine *input, Segment *segment) {
   } else {
     //MIDDLE ARG
     const char *filename = input->args[i - 1];
-    int fd = open(filename, O_CREAT|O_WRONLY, 0777);
+    int fd = open(filename, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR);
+    if (fd < 0) {
+      perror("ERROR");
+      exit(1);
+    }
 
     switch(fork()) {
       case 0:
-        dup2(fd, 1);
-        close(fd);
+        if (dup2(fd, 1) < 0) {
+          perror("ERROR");
+          exit(1);
+        }
+        if (close(fd) < 0) {
+          perror("ERROR");
+          exit(1);
+        }
         execvp(segment->args[0], segment->args);
+        fprintf(stderr, "-my_bash: %s: command not found\n", segment->args[0]);
       default:
         wait(NULL);
     }
@@ -179,7 +220,7 @@ void redirectIn(int i, InputLine *input, Segment *segment) {
 }
 
 void redirectOutAppend(int i, InputLine *input, Segment *segment) {
-  int check_int;
+  //int check_int;
 
   if (i == 0) {
     if (input->count == 1) {
@@ -195,13 +236,24 @@ void redirectOutAppend(int i, InputLine *input, Segment *segment) {
   } else {
     //MIDDLE ARG
     const char *filename = input->args[i + 1];
-    int fd = open(filename, O_WRONLY|O_APPEND, 0777);
+    int fd = open(filename, O_WRONLY | O_APPEND);
+    if (fd < 0) {
+      perror("ERROR");
+      exit(1);
+    }
 
     switch(fork()) {
       case 0:
-        dup2(fd, 1);
-        close(fd);
+        if (dup2(fd, 1) < 0) {
+          perror("ERROR");
+          exit(1);
+        }
+        if (close(fd) < 0) {
+          perror("ERROR");
+          exit(1);
+        }
         execvp(segment->args[0], segment->args);
+        fprintf(stderr, "-my_bash: %s: command not found\n", segment->args[0]);
       default:
         wait(NULL);
     }
@@ -231,9 +283,9 @@ void freeMemory(InputLine *input, Segment *segment) {
 
 int main() {
   char line[80];
-  int onlyArg;
+  int onlyArg, check_int;
 
-  while (fgets(line, 1000, stdin) != NULL) {
+  while (fgets(line, 1000, stdin) != NULL) {      //check?
     onlyArg = 1;
     char* line_dup = strdup(line);
 
@@ -271,6 +323,7 @@ int main() {
       switch(fork()) {
         case 0:
           execvp(segment->args[0], segment->args);
+          fprintf(stderr, "-my_bash: %s: command not found\n", segment->args[0]);
         default:
           wait(NULL);
       }
