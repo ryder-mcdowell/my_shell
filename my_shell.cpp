@@ -154,7 +154,7 @@ void redirectOut(int i, InputLine *input, Segment *segment) {
   } else {
     //MIDDLE ARG
     const char *filename = input->args[i + 1];
-    int fd = open(filename, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR);
+    int fd = open(filename, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
     if (fd < 0) {
       perror("ERROR");
       exit(1);
@@ -195,7 +195,7 @@ void redirectIn(int i, InputLine *input, Segment *segment) {
   } else {
     //MIDDLE ARG
     const char *filename = input->args[i - 1];
-    int fd = open(filename, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR);
+    int fd = open(filename, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
     if (fd < 0) {
       perror("ERROR");
       exit(1);
@@ -313,6 +313,10 @@ int main() {
         }
         if (strcmp("<", input->args[i]) == 0) {
           redirectIn(i, input, segment->next);
+          onlyArg = 0;
+        }
+        if (strcmp(">>", input->args[i]) == 0) {
+          redirectOutAppend(i, input, segment);
           onlyArg = 0;
         }
       }
