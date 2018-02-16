@@ -322,14 +322,32 @@ void freeStructMemory(InputLine *input, Segment *segment) {
   free(input);
 }
 
-int main() {
-  char line[80];
+int main(int argc, char **argv) {
+  char line[80];           //what should line's size be?
   int onlyArg, check_int;
+
+  //CMD Prompt
+  if (argc == 2) {
+    printf("%s>", argv[1]);
+  } else if (argc > 2) {
+    fprintf(stderr, "ERROR: Too many command line arguments.\nUSAGE: ./my_shell [CMDPrompt]\n");
+    exit(1);
+  } else {
+    printf("my_shell>");
+  }
 
   while (fgets(line, 1000, stdin) != NULL) {      //check?
     onlyArg = 1;
     char* line_dup = strdup(line);
 
+    //CMD Prompt
+    if (argc == 2) {
+      printf("%s>", argv[1]);
+    } else {
+      printf("my_shell>");
+    }
+
+    //create structs from input line
     InputLine *input = parseInput(line);
     Segment *segment = parseSegments(line_dup, input);
 
