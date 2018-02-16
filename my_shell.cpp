@@ -340,13 +340,6 @@ int main(int argc, char **argv) {
     onlyArg = 1;
     char* line_dup = strdup(line);
 
-    //CMD Prompt
-    if (argc == 2) {
-      printf("%s>", argv[1]);
-    } else {
-      printf("my_shell>");
-    }
-
     //create structs from input line
     InputLine *input = parseInput(line);
     Segment *segment = parseSegments(line_dup, input);
@@ -358,11 +351,20 @@ int main(int argc, char **argv) {
     free(line_dup);
 
     //exit
+    fprintf(stderr, "ryder: arg[0] = %s, argc = %d\n", input->args[0], input->count);
     if (strcmp("exit", input->args[0]) == 0) {
       freeStructMemory(input, first);
       exit(0);
     }
 
+    //CMD Prompt
+    if (argc == 2) {
+      printf("%s>", argv[1]);
+    } else {
+      printf("my_shell>");
+    }
+
+    //
     while (segment->next != NULL) {
       for (int i = 0; i < segment->count + 2; i++) {
         //redirection
@@ -383,7 +385,6 @@ int main(int argc, char **argv) {
           onlyArg = 0;
         }
       }
-
       segment = segment->next;
     }
     if (onlyArg == 1) {
