@@ -324,7 +324,7 @@ void freeStructMemory(InputLine *input, Segment *segment) {
 
 int main(int argc, char **argv) {
   char line[80];           //what should line's size be?
-  int onlyArg, check_int;
+  int oneSegment, check_int;
 
   //CMD Prompt
   if (argc == 2) {
@@ -337,7 +337,7 @@ int main(int argc, char **argv) {
   }
 
   while (fgets(line, 1000, stdin) != NULL) {      //check?
-    onlyArg = 1;
+    oneSegment = 1;
     char* line_dup = strdup(line);
 
     //create structs from input line
@@ -370,24 +370,28 @@ int main(int argc, char **argv) {
         //redirection
         if (strcmp(">", input->args[i]) == 0) {
           redirectOut(i, input, segment);
-          onlyArg = 0;
+          oneSegment = 0;
         }
         if (strcmp("<", input->args[i]) == 0) {
           redirectIn(i, input, segment->next);
-          onlyArg = 0;
+          oneSegment = 0;
         }
         if (strcmp(">>", input->args[i]) == 0) {
           redirectOutAppend(i, input, segment);
-          onlyArg = 0;
+          oneSegment = 0;
         }
         if (strcmp("2>", input->args[i]) == 0) {
           redirectOutError(i, input, segment);
-          onlyArg = 0;
+          oneSegment = 0;
+        }
+        if (strcmp("|", input->args[i]) == 0) {
+          fprintf(stderr, "Pipe!\n");
+          oneSegment = 0;
         }
       }
       segment = segment->next;
     }
-    if (onlyArg == 1) {
+    if (oneSegment == 1) {
       switch(fork()) {
         case 0:
           execvp(segment->args[0], segment->args);
