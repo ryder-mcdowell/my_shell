@@ -404,24 +404,133 @@ int main(int argc, char **argv) {
         printf("my_shell>");
       }
 
+      int Lpipe[2], Rpipe[2];
+      Segment *previous = NULL;
+
       while (segment->next != NULL) {
+        fprintf(stderr, "LOOP START\n");
         pipe = TRUE;
 
+        if (segment == first && input->segments_count == 2) {
+          fprintf(stderr, "ONE PIPE\n");
+          //ONLY PIPE
+          pipe2(Lpipe, 0);
 
-        if (segment == first) {
-          //first pipe
-        } else {
-          //middle pipe
+          switch(fork()) {
+            case 0:
+              //write end of pipe <-- stdout
+              dup2(Lpipe[1], STDOUT);
+              close(Lpipe[0]);
+              execvp(segment->args[0], segment->args);
+              fprintf(stderr, "-my_shell: %s: command not found\n", segment->args[0]);
+            default:
+              close(Lpipe[1]);
+              wait(NULL);
+          }
+
+          switch(fork()) {
+            case 0:
+              //read end of pipe <-- stdin
+              dup2(Lpipe[0], STDIN);
+              close(Lpipe[1]);
+              execvp(segment->next->args[0], segment->next->args);
+              fprintf(stderr, "-my_shell: %s: command not found\n", segment->next->args[0]);
+            default:
+              close(Lpipe[0]);
+              wait(NULL);
+          }
         }
 
-        redirect = handleRedirects(segment);
+        if (segment == first && input->segments_count > 2) {
+          fprintf(stderr, "FIRST SEGMENT\n");
+          fprintf(stderr, "-SEG = %s, SEG->NEXT = %s\n", segment->args[0], segment->next->args[0]);
+          //FIRST SEGMENT IN PIPE SERIES
+          //int pfd[2];
+          pipe2(Lpipe, 0);
+          pipe2(Rpipe, 0);
 
+          // switch(fork()) {
+          //   case 0:
+          //     //write end of pipe <-- stdout
+          //     dup2(Lpipe[1], STDOUT);
+          //     close(Lpipe[0]);
+          //     execvp(segment->args[0], segment->args);
+          //     fprintf(stderr, "-my_shell: %s: command not found\n", segment->args[0]);
+          //   default:
+          //     close(Lpipe[1]);
+          //     wait(NULL);
+          // }
 
+        }
 
+        if (segment != first && input->segments_count > 2) {
+          fprintf(stderr, "MIDDLE SEGMENT\n");
+          fprintf(stderr, "-SEG = %s, SEG->NEXT = %s\n", segment->args[0], segment->next->args[0]);
+          //MIDDLE SEGMENT
+          switch(fork()) {
+            case 0:
+              //write end of left pipe <-- stdout
+              dup2(Lpipe[1], STDOUT);
+              close(Lpipe[0]);
+              execvp(previous->args[0], previous->args);
+              fprintf(stderr, "-my_shell: %s: command not found\n", previous->args[0]);
+            default:
+              close(Lpipe[1]);
+              wait(NULL);
+          }
+
+          switch(fork()) {
+            case 0:
+              //read end of left pipe <-- stdin
+              dup2(Lpipe[0], STDIN);
+              close(Lpipe[1]);
+              //write end of right pipe <-- stdout
+              dup2(Rpipe[1], STDOUT);
+              close(Rpipe[0]);
+              execvp(segment->args[0], segment->args);
+              fprintf(stderr, "-my_shell: %s: command not found\n", segment->args[0]);
+            default:
+              close(Lpipe[0]);
+              close(Rpipe[1]);
+              wait(NULL);
+          }
+
+          switch(fork()) {
+            case 0:
+              dup2(Rpipe[0], STDIN);
+              close(Rpipe[1]);
+              //execvp(segment->next->args[0], segment->next->args);
+              fprintf(stderr, "-my_shell: %s: command not found\n", segment->next->args[0]);
+            default:
+              close(Rpipe[0]);
+              wait(NULL);
+          }
+
+        }
+
+        //redirect = handleRedirects(segment);
+        previous = segment;
         segment = segment->next;
+        fprintf(stderr, "LOOP END\n");
       }
-      //last pipe
-      redirect = handleRedirects(segment);
+
+      if (pipe == TRUE && input->segments_count > 2) {
+        fprintf(stderr, "LAST SEGMENT\n");
+        fprintf(stderr, "-SEG = %s\n", segment->args[0]);
+        //LAST SEGMENT
+        switch(fork()) {
+          case 0:
+
+            execvp(segment->args[0], segment->args);
+            fprintf(stderr, "-my_shell: %s: command not found\n", segment->args[0]);
+          default:
+            //close(Rpipe[0]);
+            wait(NULL);
+        }
+
+        //redirect = handleRedirects(segment);
+      }
+
 
 
       //no pipes or redirects, one segment
@@ -435,6 +544,7 @@ int main(int argc, char **argv) {
         }
       }
 
+      fprintf(stderr, "DONE\n");
       freeStructMemory(input, first);
 
     } else {
