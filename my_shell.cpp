@@ -428,7 +428,10 @@ int main(int argc, char **argv) {
           switch(fork()) {
             case 0:
               //write end of pipe <-- stdout
-              dup2(pipe[1], STDOUT);
+              if (dup2(pipe[1], STDOUT) < 0) {
+                perror("ERROR");
+                exit(1);
+              }
               close(pipe[0]);
               execvp(segment->args[0], segment->args);
               fprintf(stderr, "-my_shell: %s: command not found\n", segment->args[0]);
@@ -441,7 +444,10 @@ int main(int argc, char **argv) {
           switch(fork()) {
             case 0:
               //read end of pipe <-- stdin
-              dup2(pipe[0], STDIN);
+              if (dup2(pipe[0], STDIN) < 0) {
+                perror("ERROR");
+                exit(1);
+              }
               close(pipe[1]);
               handleRedirects(segment->next);
               execvp(segment->next->args[0], segment->next->args);
@@ -458,7 +464,10 @@ int main(int argc, char **argv) {
           switch(fork()) {
             case 0:
               //write end of pipe <-- stdout
-              dup2(pipe[1], STDOUT);
+              if (dup2(pipe[1], STDOUT) < 0) {
+                perror("ERROR");
+                exit(1);
+              }
               close(pipe[0]);
               close(Npipe[0]);
               close(Npipe[1]);
@@ -473,9 +482,16 @@ int main(int argc, char **argv) {
           switch(fork()) {
             case 0:
               //read end of pipe <-- stdin
-              dup2(pipe[0], STDIN);
+              if (dup2(pipe[0], STDIN) < 0) {
+                perror("ERROR");
+                exit(1);
+              }
               close(pipe[1]);
-              dup2(Npipe[1], STDOUT);
+              //write end of next pipe <-- stout
+              if (dup2(Npipe[1], STDOUT) < 0) {
+                perror("ERROR");
+                exit(1);
+              }
               close(Npipe[0]);
               execvp(segment->next->args[0], segment->next->args);
               fprintf(stderr, "-my_shell: %s: command not found\n", segment->next->args[0]);
@@ -489,8 +505,11 @@ int main(int argc, char **argv) {
           segment = segment->next;
           switch(fork()) {
             case 0:
-              //read end of pipe <-- stdin
-              dup2(Npipe[0], STDIN);
+              //read end of next pipe <-- stdin
+              if (dup2(Npipe[0], STDIN) < 0) {
+                perror("ERROR");
+                exit(1);
+              }
               close(Npipe[1]);
               close(pipe[0]);
               close(pipe[1]);
@@ -506,7 +525,7 @@ int main(int argc, char **argv) {
         }
       //MORE THAN 2 PIPES
       } else {
-        fprintf(stderr, "Error: Sorry, my_shell only supports maximum of two pipes\n");
+        fprintf(stderr, "ERROR: Sorry, my_shell only supports maximum of two pipes\n");
       }
 
       freeStructMemory(input, first);
