@@ -26,7 +26,7 @@ typedef struct Segment {
   struct Segment *next;
 } Segment;
 
-InputLine *parseInput(char line[80]) {
+InputLine *parseInput(char line[255]) {
   char *ptr;
   vector <char *> argsVector;
   InputLine *input;
@@ -105,7 +105,7 @@ Segment *createNewSegment(vector<char *> argsVector, Segment *previous, int hasR
   return segment;
 }
 
-Segment *parseSegments(char line[80], InputLine *input) {
+Segment *parseSegments(char line[255], InputLine *input) {
   char *ptr;
   vector <char *> argsVector;
   Segment *first = NULL;
@@ -315,25 +315,21 @@ void redirectOutError(int i, Segment *segment) {
 int handleRedirects(Segment *segment) {
   for (int i = 0; i < segment->count; i++) {
     if (strcmp(">", segment->args[i]) == 0) {
-      fprintf(stderr, "ryder: Redirect Out\n");
       redirectOut(i, segment);
       segment->args[i] = NULL;
       return TRUE;
     }
     else if (strcmp(">>", segment->args[i]) == 0) {
-      fprintf(stderr, "ryder: Redirect Out Append\n");
       redirectOutAppend(i, segment);
       segment->args[i] = NULL;
       return TRUE;
     }
     else if (strcmp("2>", segment->args[i]) == 0) {
-      fprintf(stderr, "ryder: Redirect Out Error\n");
       redirectOutError(i, segment);
       segment->args[i] = NULL;
       return TRUE;
     }
     else if (strcmp("<", segment->args[i]) == 0) {
-      fprintf(stderr, "ryder: Redirect In\n");
       redirectIn(i, segment);
       segment->args[i] = NULL;
       return TRUE;
@@ -364,7 +360,7 @@ void freeStructMemory(InputLine *input, Segment *segment) {
 }
 
 int main(int argc, char **argv) {
-  char line[80];           //what should line's size be?
+  char line[255];
   int check_int;
 
   //CMD Prompt
@@ -377,7 +373,7 @@ int main(int argc, char **argv) {
     printf("my_shell>");
   }
 
-  while (fgets(line, 1000, stdin) != NULL) {      //check?
+  while (fgets(line, 1000, stdin) != NULL) {
     int redirect = FALSE;
 
     //avoid only newline entry
@@ -429,8 +425,6 @@ int main(int argc, char **argv) {
 
         //-ONE PIPE
         if (input->segments_count == 2) {
-          fprintf(stderr, "ONE PIPE\n");
-
           switch(fork()) {
             case 0:
               //write end of pipe <-- stdout
@@ -458,9 +452,9 @@ int main(int argc, char **argv) {
               wait(NULL);
           }
         }
+
         //-TWO PIPES
         if (input->segments_count == 3) {
-          fprintf(stderr, "TWO PIPES\n");
           switch(fork()) {
             case 0:
               //write end of pipe <-- stdout
@@ -512,7 +506,7 @@ int main(int argc, char **argv) {
         }
       //MORE THAN 2 PIPES
       } else {
-        fprintf(stderr, "Sorry, my_shell only supports maximum of two pipes\n");
+        fprintf(stderr, "Error: Sorry, my_shell only supports maximum of two pipes\n");
       }
 
       freeStructMemory(input, first);
