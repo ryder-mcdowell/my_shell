@@ -438,6 +438,7 @@ int main(int argc, char **argv) {
               close(pipe[0]);
               execvp(segment->args[0], segment->args);
               fprintf(stderr, "-my_shell: %s: command not found\n", segment->args[0]);
+              exit(1);
             default:
               close(pipe[1]);
               wait(NULL);
@@ -451,6 +452,7 @@ int main(int argc, char **argv) {
               handleRedirects(segment->next);
               execvp(segment->next->args[0], segment->next->args);
               fprintf(stderr, "-my_shell: %s: command not found\n", segment->next->args[0]);
+              exit(1);
             default:
               close(pipe[0]);
               wait(NULL);
@@ -459,7 +461,53 @@ int main(int argc, char **argv) {
         //-TWO PIPES
         if (input->segments_count == 3) {
           fprintf(stderr, "TWO PIPES\n");
+          switch(fork()) {
+            case 0:
+              //write end of pipe <-- stdout
+              dup2(pipe[1], STDOUT);
+              close(pipe[0]);
+              close(Npipe[0]);
+              close(Npipe[1]);
+              execvp(segment->args[0], segment->args);
+              fprintf(stderr, "-my_shell: %s: command not found\n", segment->args[0]);
+              exit(1);
+            default:
+              close(pipe[1]);
+              wait(NULL);
+          }
 
+          switch(fork()) {
+            case 0:
+              //read end of pipe <-- stdin
+              dup2(pipe[0], STDIN);
+              close(pipe[1]);
+              dup2(Npipe[1], STDOUT);
+              close(Npipe[0]);
+              execvp(segment->next->args[0], segment->next->args);
+              fprintf(stderr, "-my_shell: %s: command not found\n", segment->next->args[0]);
+              exit(1);
+            default:
+              close(pipe[0]);
+              close(Npipe[1]);
+              wait(NULL);
+          }
+
+          segment = segment->next;
+          switch(fork()) {
+            case 0:
+              //read end of pipe <-- stdin
+              dup2(Npipe[0], STDIN);
+              close(Npipe[1]);
+              close(pipe[0]);
+              close(pipe[1]);
+              handleRedirects(segment->next);
+              execvp(segment->next->args[0], segment->next->args);
+              fprintf(stderr, "-my_shell: %s: command not found\n", segment->next->args[0]);
+              exit(1);
+            default:
+              close(Npipe[0]);
+              wait(NULL);
+          }
 
         }
       //MORE THAN 2 PIPES
